@@ -5,10 +5,10 @@ require "subcontractor/command"
 $stdout.sync = true
 
 module SafePty
-  def self.spawn command, &block
+  def self.spawn command, options, &block
     if Object.const_defined?("Bundler")
       Bundler.with_clean_env do
-        self.clear_more_env
+        self.clear_more_env unless options[:quiet]
         self.spawn_internal command, &block
       end
     else
@@ -41,7 +41,7 @@ module Subcontractor
       command = Subcontractor::Command.build(ARGV, options)
       Dir.chdir(options[:chdir]) if options[:chdir]
       signal = options[:signal] || "TERM"
-      SafePty.spawn(command) do |stdin, stdout, pid|
+      SafePty.spawn(command, options) do |stdin, stdout, pid|
         trap("TERM") do
           send_kill(signal, find_pids_to_kill(pid))
         end
@@ -92,6 +92,9 @@ module Subcontractor
         end
         opt.on("-s", "--signal SIGNAL", "signal to send to process to kill it, default TERM") do |signal|
           options[:signal] = signal
+        end
+        opt.on("-q", "--quiet TRUE ", "flag to make RVM shut up") do |flag|
+          options[:quiet] = flag.downcase == 'true'
         end
       end
 
